@@ -19,7 +19,7 @@
   <arg name="start_jaka4_demo" default="false"/>
 
   <!-- Keep overridable for environments with custom model package/path -->
-  <arg name="urdf_file" default="$(find jaka_description)/urdf/jaka_zu3.urdf"/>
+  <arg name="urdf_file" default="$(find threshold_listener_jaka)/urdf/jaka_zu3.urdf"/>
   <arg name="driver_pkg" default="jaka_driver"/>
   <arg name="driver_type" default="jaka_driver"/>
   <arg name="state_adapter_type" default="jaka_state_adapter_node"/>
