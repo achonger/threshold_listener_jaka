@@ -58,7 +58,7 @@ ls /home/hanmo/code/catkin_ws/src/threshold_listener_jaka/meshes/jaka_zu3_meshes
 
 推荐使用脚本：
 
-> 脚本会显式传入 `jaka4_ip`、`jaka4_tool_pose_topic`、`jaka4_linear_move_topic`。
+> 脚本会显式传入 `jaka4_ip`，并使用绝对路径传入 `urdf_file`。
 
 ```bash
 bash /home/hanmo/code/catkin_ws/src/threshold_listener_jaka/scripts/start_jaka4_openloop.sh
@@ -86,8 +86,6 @@ roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
   enable_jaka1:=false enable_jaka2:=false enable_jaka3:=false enable_jaka4:=true \
   jaka4_ip:=192.168.1.103 \
   start_jaka4_demo:=true \
-  jaka4_tool_pose_topic:=/jaka4/tool_position \
-  jaka4_linear_move_topic:=/jaka4/linear_move \
   urdf_file:=/home/hanmo/code/catkin_ws/src/threshold_listener_jaka/urdf/jaka_zu3.urdf
 ```
 
@@ -125,3 +123,14 @@ roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
 <param name="ip" value="$(arg jaka4_ip)"/>
 ```
 
+
+
+## 11. 连接方式对齐说明
+
+`multi_jaka_openloop.launch` 已按成功项目的连接方式对齐：
+
+- group 级参数：`ip` + `robot_description`；
+- driver 节点内同时传 `ip` 与 `robot_ip`；
+- driver 节点内加入常用控制/状态话题 remap；
+- 状态适配节点使用 `pkg="jaka_close_contro" type="jaka_state_adapter_node"`；
+- `robot_state_publisher` 使用 `publish_frequency=100.0` 并 remap `/joint_states -> joint_states`。
