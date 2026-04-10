@@ -172,6 +172,11 @@ target_link_libraries(openloop_move_jaka4
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
+catkin_install_python(PROGRAMS
+  scripts/start_jaka4_openloop.sh
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
 # install(TARGETS ${PROJECT_NAME}_node

@@ -18,64 +18,75 @@
   <arg name="connect_jaka4" default="true"/>
   <arg name="start_jaka4_demo" default="false"/>
 
-  <!-- Keep overridable for environments with custom model package/path -->
+  <!-- URDF in this package; can be overridden from command line -->
   <arg name="urdf_file" default="$(find threshold_listener_jaka)/urdf/jaka_zu3.urdf"/>
   <arg name="driver_pkg" default="jaka_driver"/>
   <arg name="driver_type" default="jaka_driver"/>
-  <arg name="state_adapter_type" default="jaka_state_adapter_node"/>
 
   <group ns="jaka1" if="$(arg enable_jaka1)">
+    <param name="robot_description" textfile="$(arg urdf_file)"/>
+
     <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
       <param name="robot_ip" value="$(arg jaka1_ip)"/>
       <param name="connect" value="$(arg connect_jaka1)"/>
     </node>
 
-    <node pkg="$(arg driver_pkg)" type="$(arg state_adapter_type)" name="jaka_state_adapter_node" output="screen"/>
+    <!-- NOTE: jaka_state_adapter_node is intentionally not launched here.
+         Reason: some jaka_driver versions do not provide this executable,
+         and forcing it would make the whole launch fail. -->
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
-      <param name="robot_description" textfile="$(arg urdf_file)"/>
       <remap from="joint_states" to="joint_states"/>
     </node>
   </group>
 
   <group ns="jaka2" if="$(arg enable_jaka2)">
+    <param name="robot_description" textfile="$(arg urdf_file)"/>
+
     <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
       <param name="robot_ip" value="$(arg jaka2_ip)"/>
       <param name="connect" value="$(arg connect_jaka2)"/>
     </node>
 
-    <node pkg="$(arg driver_pkg)" type="$(arg state_adapter_type)" name="jaka_state_adapter_node" output="screen"/>
+    <!-- NOTE: jaka_state_adapter_node is intentionally not launched here.
+         Reason: some jaka_driver versions do not provide this executable,
+         and forcing it would make the whole launch fail. -->
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
-      <param name="robot_description" textfile="$(arg urdf_file)"/>
       <remap from="joint_states" to="joint_states"/>
     </node>
   </group>
 
   <group ns="jaka3" if="$(arg enable_jaka3)">
+    <param name="robot_description" textfile="$(arg urdf_file)"/>
+
     <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
       <param name="robot_ip" value="$(arg jaka3_ip)"/>
       <param name="connect" value="$(arg connect_jaka3)"/>
     </node>
 
-    <node pkg="$(arg driver_pkg)" type="$(arg state_adapter_type)" name="jaka_state_adapter_node" output="screen"/>
+    <!-- NOTE: jaka_state_adapter_node is intentionally not launched here.
+         Reason: some jaka_driver versions do not provide this executable,
+         and forcing it would make the whole launch fail. -->
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
-      <param name="robot_description" textfile="$(arg urdf_file)"/>
       <remap from="joint_states" to="joint_states"/>
     </node>
   </group>
 
   <group ns="jaka4" if="$(arg enable_jaka4)">
+    <param name="robot_description" textfile="$(arg urdf_file)"/>
+
     <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
       <param name="robot_ip" value="$(arg jaka4_ip)"/>
       <param name="connect" value="$(arg connect_jaka4)"/>
     </node>
 
-    <node pkg="$(arg driver_pkg)" type="$(arg state_adapter_type)" name="jaka_state_adapter_node" output="screen"/>
+    <!-- NOTE: jaka_state_adapter_node is intentionally not launched here.
+         Reason: some jaka_driver versions do not provide this executable,
+         and forcing it would make the whole launch fail. -->
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
-      <param name="robot_description" textfile="$(arg urdf_file)"/>
       <remap from="joint_states" to="joint_states"/>
     </node>
   </group>
