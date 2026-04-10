@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(threshold_listener_jaka)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+## Compile as C++14 (ROS Noetic compatible)
+add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -10,6 +10,7 @@ project(threshold_listener_jaka)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -147,6 +148,13 @@ add_executable(${PROJECT_NAME}_node src/threshold_listener_jaka_node.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
+  ${catkin_LIBRARIES}
+)
+
+
+add_executable(openloop_move_jaka4 src/openloop_move_jaka4.cpp)
+add_dependencies(openloop_move_jaka4 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(openloop_move_jaka4
   ${catkin_LIBRARIES}
 )
 

@@ -1,0 +1,86 @@
+<launch>
+  <!-- Enable switches -->
+  <arg name="enable_jaka1" default="true"/>
+  <arg name="enable_jaka2" default="false"/>
+  <arg name="enable_jaka3" default="false"/>
+  <arg name="enable_jaka4" default="false"/>
+
+  <!-- IP configuration -->
+  <arg name="jaka1_ip" default="192.168.1.100"/>
+  <arg name="jaka2_ip" default="192.168.1.101"/>
+  <arg name="jaka3_ip" default="192.168.1.102"/>
+  <arg name="jaka4_ip" default="192.168.1.103"/>
+
+  <!-- Optional behavior -->
+  <arg name="connect_jaka1" default="true"/>
+  <arg name="connect_jaka2" default="true"/>
+  <arg name="connect_jaka3" default="true"/>
+  <arg name="connect_jaka4" default="true"/>
+  <arg name="start_jaka4_demo" default="false"/>
+
+  <!-- Keep overridable for environments with custom model package/path -->
+  <arg name="urdf_file" default="$(find jaka_description)/urdf/jaka.urdf"/>
+
+  <group ns="jaka1" if="$(arg enable_jaka1)">
+    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+      <param name="robot_ip" value="$(arg jaka1_ip)"/>
+      <param name="connect" value="$(arg connect_jaka1)"/>
+    </node>
+
+    <node pkg="jaka_driver" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="robot_description" textfile="$(arg urdf_file)"/>
+      <remap from="joint_states" to="joint_states"/>
+    </node>
+  </group>
+
+  <group ns="jaka2" if="$(arg enable_jaka2)">
+    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+      <param name="robot_ip" value="$(arg jaka2_ip)"/>
+      <param name="connect" value="$(arg connect_jaka2)"/>
+    </node>
+
+    <node pkg="jaka_driver" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="robot_description" textfile="$(arg urdf_file)"/>
+      <remap from="joint_states" to="joint_states"/>
+    </node>
+  </group>
+
+  <group ns="jaka3" if="$(arg enable_jaka3)">
+    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+      <param name="robot_ip" value="$(arg jaka3_ip)"/>
+      <param name="connect" value="$(arg connect_jaka3)"/>
+    </node>
+
+    <node pkg="jaka_driver" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="robot_description" textfile="$(arg urdf_file)"/>
+      <remap from="joint_states" to="joint_states"/>
+    </node>
+  </group>
+
+  <group ns="jaka4" if="$(arg enable_jaka4)">
+    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+      <param name="robot_ip" value="$(arg jaka4_ip)"/>
+      <param name="connect" value="$(arg connect_jaka4)"/>
+    </node>
+
+    <node pkg="jaka_driver" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="robot_description" textfile="$(arg urdf_file)"/>
+      <remap from="joint_states" to="joint_states"/>
+    </node>
+  </group>
+
+  <node
+    pkg="threshold_listener_jaka"
+    type="openloop_move_jaka4"
+    name="openloop_move_jaka4"
+    output="screen"
+    if="$(eval arg('enable_jaka4') and arg('start_jaka4_demo'))"/>
+</launch>
