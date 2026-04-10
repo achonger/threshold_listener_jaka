@@ -96,9 +96,9 @@ roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
 1. 某些版本的 `jaka_driver` 不包含 `jaka_state_adapter_node` 可执行文件。  
    因此当前 launch 已避免强依赖该节点，防止因找不到可执行文件导致整套启动失败。
 
-2. 若 `openloop_move_jaka4` 一直等待 `/jaka4/tool_position`，需要继续确认：  
+2. 若 `openloop_move_jaka4` 一直等待 `/jaka4/jaka_driver/tool_position`，需要继续确认：  
    - 当前 `jaka_driver` 实际发布的话题名；  
-   - 是否与本项目默认话题一致（默认 `/jaka4/tool_position` 与 `/jaka4/linear_move`）。
+   - 是否与本项目默认话题一致（默认 `/jaka4/jaka_driver/tool_position` 与 service `/jaka4/jaka_driver/linear_move`）。
 
 ---
 
@@ -132,5 +132,5 @@ roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
 - group 级参数：`ip` + `robot_description`；
 - driver 节点内同时传 `ip` 与 `robot_ip`；
 - driver 节点内加入常用控制/状态话题 remap；
-- 状态适配节点使用 `pkg="jaka_close_contro" type="jaka_state_adapter_node"`；
+- 状态适配节点已移除（当前项目不再依赖外部适配节点包）；
 - `robot_state_publisher` 使用 `publish_frequency=100.0` 并 remap `/joint_states -> joint_states`。

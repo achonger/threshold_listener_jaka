@@ -46,8 +46,6 @@
       <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
     </node>
 
-    <node pkg="jaka_close_contro" type="jaka_state_adapter_node" name="jaka_state_adapter" output="screen"/>
-
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="publish_frequency" value="100.0" />
       <remap from="/joint_states" to="joint_states"/>
@@ -78,8 +76,6 @@
       <remap from="/jaka_driver/set_userframe" to="jaka_driver/set_userframe" />
       <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
     </node>
-
-    <node pkg="jaka_close_contro" type="jaka_state_adapter_node" name="jaka_state_adapter" output="screen"/>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="publish_frequency" value="100.0" />
@@ -112,8 +108,6 @@
       <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
     </node>
 
-    <node pkg="jaka_close_contro" type="jaka_state_adapter_node" name="jaka_state_adapter" output="screen"/>
-
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="publish_frequency" value="100.0" />
       <remap from="/joint_states" to="joint_states"/>
@@ -145,8 +139,6 @@
       <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
     </node>
 
-    <node pkg="jaka_close_contro" type="jaka_state_adapter_node" name="jaka_state_adapter" output="screen"/>
-
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="publish_frequency" value="100.0" />
       <remap from="/joint_states" to="joint_states"/>
@@ -160,7 +152,7 @@
     output="screen"
     if="$(eval arg('enable_jaka4') and arg('start_jaka4_demo'))">
     <param name="arm_ns" value="jaka4"/>
-    <param name="tool_pose_topic" value="/jaka4/tool_position"/>
-    <param name="linear_move_topic" value="/jaka4/linear_move"/>
+    <param name="tool_pose_topic" value="/jaka4/jaka_driver/tool_position"/>
+    <param name="linear_move_service" value="/jaka4/jaka_driver/linear_move"/>
   </node>
 </launch>
