@@ -83,9 +83,16 @@ public:
                roll, pitch, yaw);
 
       jaka_msgs::Move srv;
-      srv.request.pose = {x_mm, y_mm, z_mm, roll, pitch, yaw};
+      srv.request.pose.clear();
+      srv.request.pose.push_back(static_cast<float>(x_mm));
+      srv.request.pose.push_back(static_cast<float>(y_mm));
+      srv.request.pose.push_back(static_cast<float>(z_mm));
+      srv.request.pose.push_back(static_cast<float>(roll));
+      srv.request.pose.push_back(static_cast<float>(pitch));
+      srv.request.pose.push_back(static_cast<float>(yaw));
+
       srv.request.has_ref = false;
-      srv.request.ref_joint = {0.0};
+      srv.request.ref_joint.clear();
       srv.request.mvvelo = mvvelo_;
       srv.request.mvacc = mvacc_;
       srv.request.mvtime = mvtime_;
@@ -98,12 +105,14 @@ public:
         return 1;
       }
 
-      ROS_INFO("[openloop_move_jaka4] Step %d service returned: success=%s, message=%s",
+      ROS_INFO("[openloop_move_jaka4] Step %d service returned: ret=%d, message=%s",
                i,
-               srv.response.success ? "true" : "false",
+               srv.response.ret,
                srv.response.message.c_str());
-      if (!srv.response.success) {
-        ROS_ERROR("[openloop_move_jaka4] Step %d rejected by driver.", i);
+      if (srv.response.ret != 1) {
+        ROS_ERROR("[openloop_move_jaka4] Step %d rejected by driver: %s",
+                  i,
+                  srv.response.message.c_str());
         return 1;
       }
 
