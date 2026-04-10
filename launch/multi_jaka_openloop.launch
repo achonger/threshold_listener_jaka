@@ -20,14 +20,17 @@
 
   <!-- Keep overridable for environments with custom model package/path -->
   <arg name="urdf_file" default="$(find jaka_description)/urdf/jaka.urdf"/>
+  <arg name="driver_pkg" default="jaka_driver"/>
+  <arg name="driver_type" default="jaka_driver"/>
+  <arg name="state_adapter_type" default="jaka_state_adapter_node"/>
 
   <group ns="jaka1" if="$(arg enable_jaka1)">
-    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+    <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
       <param name="robot_ip" value="$(arg jaka1_ip)"/>
       <param name="connect" value="$(arg connect_jaka1)"/>
     </node>
 
-    <node pkg="jaka_driver" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+    <node pkg="$(arg driver_pkg)" type="$(arg state_adapter_type)" name="jaka_state_adapter_node" output="screen"/>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="robot_description" textfile="$(arg urdf_file)"/>
@@ -36,12 +39,12 @@
   </group>
 
   <group ns="jaka2" if="$(arg enable_jaka2)">
-    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+    <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
       <param name="robot_ip" value="$(arg jaka2_ip)"/>
       <param name="connect" value="$(arg connect_jaka2)"/>
     </node>
 
-    <node pkg="jaka_driver" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+    <node pkg="$(arg driver_pkg)" type="$(arg state_adapter_type)" name="jaka_state_adapter_node" output="screen"/>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="robot_description" textfile="$(arg urdf_file)"/>
@@ -50,12 +53,12 @@
   </group>
 
   <group ns="jaka3" if="$(arg enable_jaka3)">
-    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+    <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
       <param name="robot_ip" value="$(arg jaka3_ip)"/>
       <param name="connect" value="$(arg connect_jaka3)"/>
     </node>
 
-    <node pkg="jaka_driver" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+    <node pkg="$(arg driver_pkg)" type="$(arg state_adapter_type)" name="jaka_state_adapter_node" output="screen"/>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="robot_description" textfile="$(arg urdf_file)"/>
@@ -64,12 +67,12 @@
   </group>
 
   <group ns="jaka4" if="$(arg enable_jaka4)">
-    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+    <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
       <param name="robot_ip" value="$(arg jaka4_ip)"/>
       <param name="connect" value="$(arg connect_jaka4)"/>
     </node>
 
-    <node pkg="jaka_driver" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+    <node pkg="$(arg driver_pkg)" type="$(arg state_adapter_type)" name="jaka_state_adapter_node" output="screen"/>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="robot_description" textfile="$(arg urdf_file)"/>

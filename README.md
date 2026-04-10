@@ -36,12 +36,13 @@ threshold_listener_jaka/
 在你的 catkin 工作空间中执行：
 
 ```bash
-cd ~/catkin_ws
+export CATKIN_WS=${CATKIN_WS:-$HOME/catkin_ws}
+cd "$CATKIN_WS"
 catkin_make
 source devel/setup.bash
 ```
 
-如果该包还未放入工作空间，请先将仓库放到 `~/catkin_ws/src/` 下再编译。
+如果该包还未放入工作空间，请先将仓库放到 `${CATKIN_WS}/src/` 下再编译（不依赖固定用户名或固定目录）。
 
 ## 运行方法
 
@@ -56,7 +57,8 @@ roscore
 新开一个终端并执行：
 
 ```bash
-cd ~/catkin_ws
+export CATKIN_WS=${CATKIN_WS:-$HOME/catkin_ws}
+cd "$CATKIN_WS"
 source devel/setup.bash
 rosrun threshold_listener_jaka threshold_listener_jaka_node
 ```
@@ -98,3 +100,25 @@ rostopic pub /threshold_detect std_msgs/Int32 "data: 1" -r 1
 - 添加 launch 文件（如 `launch/threshold_listener.launch`）；
 - 增加参数化配置（例如可配置订阅话题名、触发阈值）；
 - 增加测试代码与 CI 配置。
+
+## 跨机器可移植性建议
+
+- `multi_jaka_openloop.launch` 已将驱动包名与节点类型做成参数：
+  - `driver_pkg`（默认 `jaka_driver`）
+  - `driver_type`（默认 `jaka_driver`）
+  - `state_adapter_type`（默认 `jaka_state_adapter_node`）
+- 如果你的驱动包名或可执行名在不同机器上不同，可在启动时覆盖：
+
+```bash
+roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
+  enable_jaka4:=true \
+  driver_pkg:=jaka_sdk_driver \
+  driver_type:=jaka_driver
+```
+
+- `urdf_file` 也可以在启动时覆盖，避免依赖单一描述包路径：
+
+```bash
+roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
+  urdf_file:=$(rospack find your_jaka_description_pkg)/urdf/jaka.urdf
+```
