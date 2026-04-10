@@ -34,11 +34,11 @@
 
 ---
 
-## 4. 编译步骤（可直接照抄）
+## 4. 编译步骤（使用 catkin build）
 
 ```bash
 cd /home/hanmo/code/catkin_ws
-catkin_make
+catkin build threshold_listener_jaka
 source /home/hanmo/code/catkin_ws/devel/setup.bash
 ```
 
