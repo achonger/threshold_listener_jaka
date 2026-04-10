@@ -21,5 +21,8 @@ fi
 echo "[INFO] Launching openloop stack for jaka4 ..."
 roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
   enable_jaka1:=false enable_jaka2:=false enable_jaka3:=false enable_jaka4:=true \
+  jaka4_ip:=192.168.1.103 \
   start_jaka4_demo:=true \
+  jaka4_tool_pose_topic:=/jaka4/tool_position \
+  jaka4_linear_move_topic:=/jaka4/linear_move \
   urdf_file:="${URDF_FILE}"

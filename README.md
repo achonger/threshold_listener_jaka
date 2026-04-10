@@ -58,6 +58,8 @@ ls /home/hanmo/code/catkin_ws/src/threshold_listener_jaka/meshes/jaka_zu3_meshes
 
 推荐使用脚本：
 
+> 脚本会显式传入 `jaka4_ip`、`jaka4_tool_pose_topic`、`jaka4_linear_move_topic`。
+
 ```bash
 bash /home/hanmo/code/catkin_ws/src/threshold_listener_jaka/scripts/start_jaka4_openloop.sh
 ```
@@ -82,7 +84,10 @@ bash /home/hanmo/code/catkin_ws/src/threshold_listener_jaka/scripts/start_jaka4_
 source /home/hanmo/code/catkin_ws/devel/setup.bash
 roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
   enable_jaka1:=false enable_jaka2:=false enable_jaka3:=false enable_jaka4:=true \
+  jaka4_ip:=192.168.1.103 \
   start_jaka4_demo:=true \
+  jaka4_tool_pose_topic:=/jaka4/tool_position \
+  jaka4_linear_move_topic:=/jaka4/linear_move \
   urdf_file:=/home/hanmo/code/catkin_ws/src/threshold_listener_jaka/urdf/jaka_zu3.urdf
 ```
 
@@ -95,7 +100,7 @@ roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
 
 2. 若 `openloop_move_jaka4` 一直等待 `/jaka4/tool_position`，需要继续确认：  
    - 当前 `jaka_driver` 实际发布的话题名；  
-   - 是否与本项目订阅话题一致（默认 `/<arm_ns>/tool_position`）。
+   - 是否与本项目默认话题一致（默认 `/jaka4/tool_position` 与 `/jaka4/linear_move`）。
 
 ---
 
@@ -109,3 +114,14 @@ roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
 ```xml
 <arg name="urdf_file" default="$(find threshold_listener_jaka)/urdf/jaka_zu3.urdf"/>
 ```
+
+## 10. 驱动 IP 参数名对齐说明
+
+`jaka_driver` 实际读取的参数名是 `ip`（不是 `robot_ip`）。
+
+因此本项目 `multi_jaka_openloop.launch` 已按 `ip` 传参，例如：
+
+```xml
+<param name="ip" value="$(arg jaka4_ip)"/>
+```
+

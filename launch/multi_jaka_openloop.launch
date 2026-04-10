@@ -17,6 +17,8 @@
   <arg name="connect_jaka3" default="true"/>
   <arg name="connect_jaka4" default="true"/>
   <arg name="start_jaka4_demo" default="false"/>
+  <arg name="jaka4_tool_pose_topic" default="/jaka4/tool_position"/>
+  <arg name="jaka4_linear_move_topic" default="/jaka4/linear_move"/>
 
   <!-- URDF in this package; can be overridden from command line -->
   <arg name="urdf_file" default="$(find threshold_listener_jaka)/urdf/jaka_zu3.urdf"/>
@@ -27,7 +29,7 @@
     <param name="robot_description" textfile="$(arg urdf_file)"/>
 
     <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
-      <param name="robot_ip" value="$(arg jaka1_ip)"/>
+      <param name="ip" value="$(arg jaka1_ip)"/>
       <param name="connect" value="$(arg connect_jaka1)"/>
     </node>
 
@@ -44,7 +46,7 @@
     <param name="robot_description" textfile="$(arg urdf_file)"/>
 
     <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
-      <param name="robot_ip" value="$(arg jaka2_ip)"/>
+      <param name="ip" value="$(arg jaka2_ip)"/>
       <param name="connect" value="$(arg connect_jaka2)"/>
     </node>
 
@@ -61,7 +63,7 @@
     <param name="robot_description" textfile="$(arg urdf_file)"/>
 
     <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
-      <param name="robot_ip" value="$(arg jaka3_ip)"/>
+      <param name="ip" value="$(arg jaka3_ip)"/>
       <param name="connect" value="$(arg connect_jaka3)"/>
     </node>
 
@@ -78,7 +80,7 @@
     <param name="robot_description" textfile="$(arg urdf_file)"/>
 
     <node pkg="$(arg driver_pkg)" type="$(arg driver_type)" name="jaka_driver" output="screen">
-      <param name="robot_ip" value="$(arg jaka4_ip)"/>
+      <param name="ip" value="$(arg jaka4_ip)"/>
       <param name="connect" value="$(arg connect_jaka4)"/>
     </node>
 
@@ -96,5 +98,9 @@
     type="openloop_move_jaka4"
     name="openloop_move_jaka4"
     output="screen"
-    if="$(eval arg('enable_jaka4') and arg('start_jaka4_demo'))"/>
+    if="$(eval arg('enable_jaka4') and arg('start_jaka4_demo'))">
+    <param name="arm_ns" value="jaka4"/>
+    <param name="tool_pose_topic" value="$(arg jaka4_tool_pose_topic)"/>
+    <param name="linear_move_topic" value="$(arg jaka4_linear_move_topic)"/>
+  </node>
 </launch>
