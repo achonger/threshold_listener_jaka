@@ -12,8 +12,12 @@ public:
     pnh_.param("dwell_sec", dwell_sec_, 10.0);
     pnh_.param("command_settle_sec", command_settle_sec_, 1.0);
     pnh_.param("wait_pose_timeout_sec", wait_pose_timeout_sec_, 8.0);
-    pnh_.param<std::string>("tool_pose_topic", tool_pose_topic_, "/jaka4/tool_position");
-    pnh_.param<std::string>("linear_move_topic", linear_move_topic_, "/jaka4/linear_move");
+    pnh_.param<std::string>("arm_ns", arm_ns_, "jaka4");
+
+    const std::string default_tool_pose_topic = "/" + arm_ns_ + "/tool_position";
+    const std::string default_linear_move_topic = "/" + arm_ns_ + "/linear_move";
+    pnh_.param<std::string>("tool_pose_topic", tool_pose_topic_, default_tool_pose_topic);
+    pnh_.param<std::string>("linear_move_topic", linear_move_topic_, default_linear_move_topic);
 
     pose_sub_ = nh_.subscribe(tool_pose_topic_, 1, &OpenloopMoveJaka4::poseCallback, this);
     linear_move_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(linear_move_topic_, 1, false);
@@ -118,6 +122,7 @@ private:
   double dwell_sec_{10.0};
   double command_settle_sec_{1.0};
   double wait_pose_timeout_sec_{8.0};
+  std::string arm_ns_;
   std::string tool_pose_topic_;
   std::string linear_move_topic_;
 };
