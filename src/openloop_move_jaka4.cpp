@@ -21,7 +21,7 @@ public:
     pnh_.param("step_distance_m", step_distance_m_, 0.01);
     pnh_.param("total_distance_mm", total_distance_mm_, -1.0);
     pnh_.param("step_distance_mm", step_distance_mm_, -1.0);
-    pnh_.param("small_test_step_mm", small_test_step_mm_, 5.0);
+    pnh_.param("small_test_step_mm", small_test_step_mm_, 50.0);
 
     pnh_.param("dwell_sec", dwell_sec_, 10.0);
     pnh_.param("command_settle_sec", command_settle_sec_, 1.0);
@@ -110,9 +110,16 @@ public:
     }
 
     if (debug_motion_mode_ == "single_step") {
-      ROS_INFO("[openloop_move_jaka4] Mode=single_step, move negative X by %.3f mm.", small_test_step_mm_);
       geometry_msgs::PoseStamped target = initial_pose_;
       target.pose.position.x = initial_pose_.pose.position.x - toTopicDeltaFromMm(small_test_step_mm_);
+
+      const double current_x_mm = topicPosToMm(initial_pose_.pose.position.x);
+      const double target_x_mm = topicPosToMm(target.pose.position.x);
+      const double delta_x_mm = target_x_mm - current_x_mm;
+
+      ROS_INFO("[openloop_move_jaka4] Mode=single_step, move negative X by %.3f mm.", small_test_step_mm_);
+      ROS_INFO("[openloop_move_jaka4] single_step details: current_x_mm=%.3f target_x_mm=%.3f delta_x_mm=%.3f",
+               current_x_mm, target_x_mm, delta_x_mm);
       return sendStep(target, 1, true);
     }
 
@@ -384,7 +391,7 @@ private:
   double step_distance_m_{0.01};
   double total_distance_mm_{-1.0};
   double step_distance_mm_{-1.0};
-  double small_test_step_mm_{5.0};
+  double small_test_step_mm_{50.0};
 
   double dwell_sec_{10.0};
   double command_settle_sec_{1.0};
