@@ -161,6 +161,12 @@ target_link_libraries(openloop_move_jaka4
   ${catkin_LIBRARIES}
 )
 
+add_executable(jaka_state_adapter_node src/jaka_state_adapter_node.cpp)
+add_dependencies(jaka_state_adapter_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(jaka_state_adapter_node
+  ${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############

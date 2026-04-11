@@ -85,7 +85,15 @@ public:
     }
 
     if (!waitForInitialData()) {
-      ROS_ERROR("[openloop_move_jaka4] Failed to get initial pose/joint_states within %.2f sec. Exit.", wait_pose_timeout_sec_);
+      if (has_pose_ && !has_joint_state_) {
+        ROS_ERROR("[openloop_move_jaka4] Initial tool pose received, but no joint_states on %s within %.2f sec. Exit.",
+                  joint_states_topic_.c_str(), wait_pose_timeout_sec_);
+      } else if (!has_pose_ && has_joint_state_) {
+        ROS_ERROR("[openloop_move_jaka4] joint_states received, but no tool pose on %s within %.2f sec. Exit.",
+                  tool_pose_topic_.c_str(), wait_pose_timeout_sec_);
+      } else {
+        ROS_ERROR("[openloop_move_jaka4] Failed to get initial pose/joint_states within %.2f sec. Exit.", wait_pose_timeout_sec_);
+      }
       return 1;
     }
 

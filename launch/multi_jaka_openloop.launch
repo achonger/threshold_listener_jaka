@@ -46,6 +46,8 @@
       <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
     </node>
 
+    <node pkg="threshold_listener_jaka" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="publish_frequency" value="100.0" />
       <remap from="/joint_states" to="joint_states"/>
@@ -76,6 +78,8 @@
       <remap from="/jaka_driver/set_userframe" to="jaka_driver/set_userframe" />
       <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
     </node>
+
+    <node pkg="threshold_listener_jaka" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="publish_frequency" value="100.0" />
@@ -108,6 +112,8 @@
       <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
     </node>
 
+    <node pkg="threshold_listener_jaka" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="publish_frequency" value="100.0" />
       <remap from="/joint_states" to="joint_states"/>
@@ -138,6 +144,8 @@
       <remap from="/jaka_driver/set_userframe" to="jaka_driver/set_userframe" />
       <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
     </node>
+
+    <node pkg="threshold_listener_jaka" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
       <param name="publish_frequency" value="100.0" />
