@@ -56,13 +56,26 @@ ls /home/hanmo/code/catkin_ws/src/threshold_listener_jaka/meshes/jaka_zu3_meshes
 
 ## 6. 一键启动（推荐）
 
-推荐使用脚本：
-
-> 脚本会显式传入 `jaka4_ip`，并使用绝对路径传入 `urdf_file`。
+### 6.1 首次使用（给脚本执行权限）
 
 ```bash
-bash /home/hanmo/code/catkin_ws/src/threshold_listener_jaka/scripts/start_jaka4_openloop.sh
+chmod +x /home/hanmo/code/catkin_ws/src/threshold_listener_jaka/scripts/start_jaka4_openloop.sh
 ```
+
+### 6.2 直接一键启动
+
+> 脚本默认仅启动 `jaka4`，并传入：
+> - `jaka4_ip:=192.168.1.103`
+> - `start_jaka4_demo:=true`
+> - `urdf_file` 绝对路径（自动解析）
+
+```bash
+/home/hanmo/code/catkin_ws/src/threshold_listener_jaka/scripts/start_jaka4_openloop.sh
+```
+
+### 6.3 如果你的机械臂 IP 不是 `192.168.1.103`
+
+请编辑脚本中的 `jaka4_ip:=192.168.1.103` 为你的实际 IP，然后重新执行上一条命令。
 
 ### 为什么推荐脚本
 
