@@ -50,6 +50,7 @@ public:
     pnh_.param("wait_motion_done_timeout_sec", wait_motion_done_timeout_sec_, 20.0);
     pnh_.param("motion_joint_threshold_rad", motion_joint_threshold_rad_, 0.01);
     pnh_.param("motion_stable_duration_sec", motion_stable_duration_sec_, 0.8);
+    pnh_.param("threshold_status_log_interval_sec", threshold_status_log_interval_sec_, 2.0);
 
     pose_sub_ = nh_.subscribe(tool_pose_topic_, 10, &OpenloopMoveJaka4::poseCallback, this);
     joint_sub_ = nh_.subscribe(joint_states_topic_, 20, &OpenloopMoveJaka4::jointCallback, this);
@@ -62,6 +63,7 @@ public:
   int run()
   {
     printConfig();
+    logThresholdMonitorStatus("startup", true);
 
     if (!linear_move_client_.waitForExistence(ros::Duration(wait_pose_timeout_sec_))) {
       ROS_ERROR("[openloop_move_jaka4] linear_move service unavailable: %s", linear_move_service_.c_str());
@@ -79,6 +81,7 @@ public:
              max_steps, step_distance_mm_, total_distance_mm_, dwell_sec_);
 
     for (int step = 1; step <= max_steps && ros::ok(); ++step) {
+      logThresholdMonitorStatus("before sending command", false);
       if (handleStopRequested("before sending command")) {
         return 0;
       }
@@ -210,6 +213,7 @@ private:
 
     while (ros::ok()) {
       ros::spinOnce();
+      logThresholdMonitorStatus("waiting motion start", false);
 
       if (handleStopRequested("while waiting motion start")) {
         return WaitResult::STOPPED_BY_THRESHOLD;
@@ -241,6 +245,7 @@ private:
 
     while (ros::ok()) {
       ros::spinOnce();
+      logThresholdMonitorStatus("waiting motion settle", false);
 
       if (handleStopRequested("while waiting motion settle")) {
         return WaitResult::STOPPED_BY_THRESHOLD;
@@ -277,6 +282,7 @@ private:
     ros::Rate rate(50.0);
     while (ros::ok()) {
       ros::spinOnce();
+      logThresholdMonitorStatus("during dwell", false);
       if (handleStopRequested("during dwell")) {
         return false;
       }
@@ -312,6 +318,7 @@ private:
     ros::Rate rate(50.0);
     while (ros::ok()) {
       ros::spinOnce();
+      logThresholdMonitorStatus("waiting initial data", false);
 
       if (handleStopRequested("while waiting initial data")) {
         return false;
@@ -339,11 +346,52 @@ private:
 
   void thresholdCallback(const std_msgs::Int32::ConstPtr& msg)
   {
-    ROS_INFO("[openloop_move_jaka4] threshold_detect received: %d", msg->data);
+    threshold_msg_received_ = true;
+    ++threshold_msg_count_;
+    last_threshold_value_ = msg->data;
+    last_threshold_stamp_ = ros::Time::now();
+
+    ROS_INFO("[openloop_move_jaka4] Received %s: %d (count=%zu, stamp=%.3f)",
+             threshold_topic_.c_str(), msg->data, threshold_msg_count_, last_threshold_stamp_.toSec());
+
     if (msg->data == 1) {
       stop_requested_ = true;
-      ROS_WARN("[openloop_move_jaka4] threshold_detect == 1 -> stop requested");
+      threshold_triggered_ = true;
+      ROS_WARN("[openloop_move_jaka4] Received %s: 1 -> stop requested", threshold_topic_.c_str());
+    } else {
+      ROS_INFO("[openloop_move_jaka4] Received %s: %d -> no stop requested", threshold_topic_.c_str(), msg->data);
     }
+  }
+
+  void logThresholdMonitorStatus(const std::string& phase, bool force)
+  {
+    const ros::Time now = ros::Time::now();
+    if (!force && !last_threshold_status_log_time_.isZero() &&
+        (now - last_threshold_status_log_time_).toSec() < threshold_status_log_interval_sec_) {
+      return;
+    }
+    last_threshold_status_log_time_ = now;
+
+    const uint32_t pub_count = threshold_sub_.getNumPublishers();
+    if (!threshold_msg_received_) {
+      if (pub_count == 0) {
+        ROS_WARN("[openloop_move_jaka4] threshold monitor (%s): subscribed to %s, no publisher on topic yet",
+                 phase.c_str(), threshold_topic_.c_str());
+      } else {
+        ROS_INFO("[openloop_move_jaka4] threshold monitor (%s): waiting for %s ... no message received yet (publishers=%u)",
+                 phase.c_str(), threshold_topic_.c_str(), pub_count);
+      }
+      return;
+    }
+
+    const double age_sec = std::max(0.0, (now - last_threshold_stamp_).toSec());
+    ROS_INFO("[openloop_move_jaka4] threshold monitor (%s): last_value=%d, last_msg_age=%.2f s, msg_count=%zu, publishers=%u, triggered=%s",
+             phase.c_str(),
+             last_threshold_value_,
+             age_sec,
+             threshold_msg_count_,
+             pub_count,
+             threshold_triggered_ ? "true" : "false");
   }
 
   void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
@@ -370,6 +418,7 @@ private:
     ROS_INFO("[openloop_move_jaka4] linear_move_service=%s", linear_move_service_.c_str());
     ROS_INFO("[openloop_move_jaka4] stop_move_service=%s", stop_move_service_.c_str());
     ROS_INFO("[openloop_move_jaka4] threshold_topic=%s", threshold_topic_.c_str());
+    ROS_INFO("[openloop_move_jaka4] threshold_status_log_interval_sec=%.2f", threshold_status_log_interval_sec_);
     ROS_INFO("[openloop_move_jaka4] tool_pose_unit=%s", tool_pose_unit_.c_str());
     ROS_INFO("[openloop_move_jaka4] step_distance_mm=%.3f total_distance_mm=%.3f dwell_sec=%.2f",
              step_distance_mm_, total_distance_mm_, dwell_sec_);
@@ -462,6 +511,12 @@ private:
   bool has_pose_{false};
   bool has_joint_state_{false};
   bool stop_requested_{false};
+  bool threshold_msg_received_{false};
+  bool threshold_triggered_{false};
+  int last_threshold_value_{0};
+  size_t threshold_msg_count_{0};
+  ros::Time last_threshold_stamp_;
+  ros::Time last_threshold_status_log_time_;
 
   std::string arm_ns_;
   std::string tool_pose_topic_;
@@ -490,6 +545,7 @@ private:
   double wait_motion_done_timeout_sec_{20.0};
   double motion_joint_threshold_rad_{0.01};
   double motion_stable_duration_sec_{0.8};
+  double threshold_status_log_interval_sec_{2.0};
 };
 
 int main(int argc, char** argv)
