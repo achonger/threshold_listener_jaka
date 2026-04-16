@@ -33,8 +33,8 @@ public:
 
     pnh_.param<std::string>("tool_pose_unit", tool_pose_unit_, "mm");
 
-    pnh_.param("step_distance_mm", step_distance_mm_, 10.0);
-    pnh_.param("total_distance_mm", total_distance_mm_, 100.0);
+    pnh_.param("step_distance_mm", step_distance_mm_, 2.0);
+    pnh_.param("total_distance_mm", total_distance_mm_, 80.0);
     pnh_.param("dwell_sec", dwell_sec_, 10.0);
 
     pnh_.param("mvvelo", mvvelo_, 30.0);
@@ -399,8 +399,8 @@ private:
   std::string threshold_topic_;
   std::string tool_pose_unit_;
 
-  double step_distance_mm_{10.0};
-  double total_distance_mm_{100.0};
+  double step_distance_mm_{2.0};
+  double total_distance_mm_{80.0};
   double dwell_sec_{10.0};
 
   double total_distance_m_{0.10};

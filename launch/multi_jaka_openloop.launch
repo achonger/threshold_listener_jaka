@@ -162,5 +162,7 @@
     <param name="arm_ns" value="jaka4"/>
     <param name="tool_pose_topic" value="/jaka4/jaka_driver/tool_position"/>
     <param name="linear_move_service" value="/jaka4/jaka_driver/linear_move"/>
+    <param name="step_distance_mm" value="2.0"/>
+    <param name="total_distance_mm" value="80.0"/>
   </node>
 </launch>
