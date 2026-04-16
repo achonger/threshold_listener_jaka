@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cctype>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -46,10 +45,6 @@ public:
     pnh_.param("index", index_, 0);
 
     pnh_.param("wait_pose_timeout_sec", wait_pose_timeout_sec_, 8.0);
-    pnh_.param("wait_motion_start_timeout_sec", wait_motion_start_timeout_sec_, 3.0);
-    pnh_.param("wait_motion_done_timeout_sec", wait_motion_done_timeout_sec_, 20.0);
-    pnh_.param("motion_joint_threshold_rad", motion_joint_threshold_rad_, 0.01);
-    pnh_.param("motion_stable_duration_sec", motion_stable_duration_sec_, 0.8);
     pnh_.param("threshold_status_log_interval_sec", threshold_status_log_interval_sec_, 2.0);
 
     pose_sub_ = nh_.subscribe(tool_pose_topic_, 10, &OpenloopMoveJaka4::poseCallback, this);
@@ -101,23 +96,7 @@ public:
         return 1;
       }
 
-      WaitResult wr = waitMotionStart();
-      if (wr == WaitResult::STOPPED_BY_THRESHOLD) {
-        return 0;
-      }
-      if (wr == WaitResult::TIMEOUT_OR_ERROR) {
-        ROS_ERROR("[openloop_move_jaka4] Step %d failed: no effective motion start detected.", step);
-        return 1;
-      }
-
-      wr = waitMotionSettle();
-      if (wr == WaitResult::STOPPED_BY_THRESHOLD) {
-        return 0;
-      }
-      if (wr == WaitResult::TIMEOUT_OR_ERROR) {
-        ROS_ERROR("[openloop_move_jaka4] Step %d failed: motion did not settle in time.", step);
-        return 1;
-      }
+      ROS_INFO("[openloop_move_jaka4] Step %d command sent. Please verify actual robot motion visually.", step);
 
       printPose("step_done", latest_pose_);
 
@@ -137,13 +116,6 @@ public:
   }
 
 private:
-  enum class WaitResult
-  {
-    OK,
-    STOPPED_BY_THRESHOLD,
-    TIMEOUT_OR_ERROR
-  };
-
   bool sendLinearTarget(const geometry_msgs::PoseStamped& target, int step)
   {
     double roll = 0.0;
@@ -198,81 +170,9 @@ private:
     ROS_INFO("[openloop_move_jaka4] Step %d linear_move response: ret=%d, message=%s",
              step, srv.response.ret, srv.response.message.c_str());
 
-    if (isWarningLikeResponse(srv.response.ret, srv.response.message)) {
-      ROS_WARN("[openloop_move_jaka4] Step %d response indicates warning; continue to observe real motion.", step);
-    }
+    ROS_INFO("[openloop_move_jaka4] Step %d linear_move response ignored for flow control.", step);
 
     return true;
-  }
-
-  WaitResult waitMotionStart()
-  {
-    const std::vector<double> baseline = latest_joint_positions_;
-    ros::Time start = ros::Time::now();
-    ros::Rate rate(100.0);
-
-    while (ros::ok()) {
-      ros::spinOnce();
-      logThresholdMonitorStatus("waiting motion start", false);
-
-      if (handleStopRequested("while waiting motion start")) {
-        return WaitResult::STOPPED_BY_THRESHOLD;
-      }
-
-      if (has_joint_state_) {
-        const double diff = maxJointDiff(baseline, latest_joint_positions_);
-        if (diff > motion_joint_threshold_rad_) {
-          ROS_INFO("[openloop_move_jaka4] joint motion detected, max_diff=%.6f rad", diff);
-          return WaitResult::OK;
-        }
-      }
-
-      if ((ros::Time::now() - start).toSec() > wait_motion_start_timeout_sec_) {
-        return WaitResult::TIMEOUT_OR_ERROR;
-      }
-      rate.sleep();
-    }
-
-    return WaitResult::TIMEOUT_OR_ERROR;
-  }
-
-  WaitResult waitMotionSettle()
-  {
-    ros::Time start = ros::Time::now();
-    ros::Time stable_since(0);
-    std::vector<double> last = latest_joint_positions_;
-    ros::Rate rate(100.0);
-
-    while (ros::ok()) {
-      ros::spinOnce();
-      logThresholdMonitorStatus("waiting motion settle", false);
-
-      if (handleStopRequested("while waiting motion settle")) {
-        return WaitResult::STOPPED_BY_THRESHOLD;
-      }
-
-      if (has_joint_state_) {
-        const double diff = maxJointDiff(last, latest_joint_positions_);
-        if (diff < motion_joint_threshold_rad_ * 0.5) {
-          if (stable_since.isZero()) {
-            stable_since = ros::Time::now();
-          }
-          if ((ros::Time::now() - stable_since).toSec() >= motion_stable_duration_sec_) {
-            return WaitResult::OK;
-          }
-        } else {
-          stable_since = ros::Time(0);
-        }
-        last = latest_joint_positions_;
-      }
-
-      if ((ros::Time::now() - start).toSec() > wait_motion_done_timeout_sec_) {
-        return WaitResult::TIMEOUT_OR_ERROR;
-      }
-      rate.sleep();
-    }
-
-    return WaitResult::TIMEOUT_OR_ERROR;
   }
 
   bool dwellWithStopCheck(int step)
@@ -450,33 +350,6 @@ private:
              roll, pitch, yaw);
   }
 
-  static double maxJointDiff(const std::vector<double>& a, const std::vector<double>& b)
-  {
-    const size_t n = std::min(a.size(), b.size());
-    double d = 0.0;
-    for (size_t i = 0; i < n; ++i) {
-      d = std::max(d, std::fabs(a[i] - b[i]));
-    }
-    return d;
-  }
-
-  static bool isWarningLikeResponse(int ret, const std::string& message)
-  {
-    std::string lower = message;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
-    if (ret != 1) {
-      return true;
-    }
-    if (lower.find("err_") != std::string::npos ||
-        lower.find("function_call_error") != std::string::npos ||
-        lower.find("error") != std::string::npos) {
-      return true;
-    }
-    return false;
-  }
-
   double topicPosToMm(double v_topic) const
   {
     if (tool_pose_unit_ == "m") {
@@ -541,10 +414,6 @@ private:
   int index_{0};
 
   double wait_pose_timeout_sec_{8.0};
-  double wait_motion_start_timeout_sec_{3.0};
-  double wait_motion_done_timeout_sec_{20.0};
-  double motion_joint_threshold_rad_{0.01};
-  double motion_stable_duration_sec_{0.8};
   double threshold_status_log_interval_sec_{2.0};
 };
 
