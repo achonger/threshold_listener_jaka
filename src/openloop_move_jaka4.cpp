@@ -35,7 +35,7 @@ public:
 
     pnh_.param("step_distance_mm", step_distance_mm_, 2.0);
     pnh_.param("total_distance_mm", total_distance_mm_, 80.0);
-    pnh_.param("dwell_sec", dwell_sec_, 10.0);
+    pnh_.param("dwell_sec", dwell_sec_, 3.0);
 
     pnh_.param("mvvelo", mvvelo_, 30.0);
     pnh_.param("mvacc", mvacc_, 30.0);
@@ -401,7 +401,7 @@ private:
 
   double step_distance_mm_{2.0};
   double total_distance_mm_{80.0};
-  double dwell_sec_{10.0};
+  double dwell_sec_{3.0};
 
   double total_distance_m_{0.10};
   double step_distance_m_{0.01};
