@@ -219,7 +219,11 @@ private:
     } else {
       ROS_INFO("[openloop_move_jaka4] stop_move service call done.");
     }
-    printPose("stopped_by_threshold", latest_pose_);
+    if (has_pose_) {
+      printPose("stopped_by_threshold", latest_pose_);
+    } else {
+      ROS_WARN("[openloop_move_jaka4] stop requested before valid pose was received; no valid pose to print");
+    }
     return true;
   }
 
@@ -252,12 +256,13 @@ private:
     last_threshold_stamp_ = ros::Time::now();
     ROS_INFO("[openloop_move_jaka4] Received %s: %d (count=%zu, stamp=%.3f)",
              threshold_topic_.c_str(), msg->data, threshold_msg_count_, last_threshold_stamp_.toSec());
-    if (msg->data == 1) {
+    if (msg->data == 0) {
       stop_requested_ = true;
       threshold_triggered_ = true;
-      ROS_WARN("[openloop_move_jaka4] Received %s: 1 -> stop requested", threshold_topic_.c_str());
+      ROS_WARN("[openloop_move_jaka4] Received %s: 0 -> stop requested", threshold_topic_.c_str());
     } else {
-      ROS_INFO("[openloop_move_jaka4] Received %s: %d -> no stop requested", threshold_topic_.c_str(), msg->data);
+      ROS_INFO("[openloop_move_jaka4] Received %s: %d -> no stop requested, continue running",
+               threshold_topic_.c_str(), msg->data);
     }
   }
 
@@ -288,17 +293,23 @@ private:
     const uint32_t pub_count = threshold_sub_.getNumPublishers();
     if (!threshold_msg_received_) {
       if (pub_count == 0) {
-        ROS_WARN("[openloop_move_jaka4] threshold monitor (%s): subscribed to %s, no publisher on topic yet",
+        ROS_WARN("[openloop_move_jaka4] threshold monitor (%s): subscribed to %s, no publisher on topic yet, continue running",
                  phase.c_str(), threshold_topic_.c_str());
       } else {
-        ROS_INFO("[openloop_move_jaka4] threshold monitor (%s): waiting for %s ... no message received yet (publishers=%u)",
+        ROS_INFO("[openloop_move_jaka4] threshold monitor (%s): waiting for %s ... no message received yet, continue running (publishers=%u)",
                  phase.c_str(), threshold_topic_.c_str(), pub_count);
       }
       return;
     }
     const double age_sec = std::max(0.0, (now - last_threshold_stamp_).toSec());
-    ROS_INFO("[openloop_move_jaka4] threshold monitor (%s): last_value=%d, last_msg_age=%.2f s, msg_count=%zu, publishers=%u, triggered=%s",
-             phase.c_str(), last_threshold_value_, age_sec, threshold_msg_count_, pub_count, threshold_triggered_ ? "true" : "false");
+    ROS_INFO("[openloop_move_jaka4] threshold monitor (%s): stop_value=0, last_value=%d (%s), last_msg_age=%.2f s, msg_count=%zu, publishers=%u, triggered=%s",
+             phase.c_str(),
+             last_threshold_value_,
+             (last_threshold_value_ == 0 ? "stop requested" : "continue"),
+             age_sec,
+             threshold_msg_count_,
+             pub_count,
+             threshold_triggered_ ? "true" : "false");
   }
 
   void printConfig() const
@@ -313,6 +324,8 @@ private:
              line_distance_mm_, line_speed_mm_s_, line_acc_mm_s2_);
     ROS_INFO("[openloop_move_jaka4] direction=[%.6f, %.6f, %.6f], direction_frame=%s",
              direction_x_, direction_y_, direction_z_, direction_frame_.c_str());
+    ROS_INFO("[openloop_move_jaka4] threshold rule: stop when %s == 0; values 1/others/no-message continue",
+             threshold_topic_.c_str());
   }
 
   void printPose(const std::string& tag, const geometry_msgs::PoseStamped& pose) const

@@ -114,7 +114,7 @@ roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
 4. 保持初始姿态不变，只改位置
 5. 只调用一次 `/jaka4/jaka_driver/linear_move`
 6. 运动监控期间持续监听 `/threshold_detect`
-7. 若收到 `data==1`，调用 `/jaka4/jaka_driver/stop_move` 并退出
+7. 若收到 `data==0`，调用 `/jaka4/jaka_driver/stop_move` 并退出
 8. 未触发阈值则到预计时间后打印最终位姿并退出
 
 ---
@@ -173,9 +173,10 @@ roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
 
 节点订阅 `std_msgs/Int32` 类型的 `/threshold_detect`：
 
-- 收到 `data==1`：触发停止，调用 `/jaka4/jaka_driver/stop_move`，并打印 `stopped_by_threshold` 位姿后退出；
-- 收到 `0` 或其他值：仅日志记录，不停止；
-- 即使暂时没有消息，也会周期性输出监听状态日志。
+- 收到 `data==0`：触发停止，调用 `/jaka4/jaka_driver/stop_move`，并打印 `stopped_by_threshold` 位姿后退出；
+- 收到 `data==1`：不停止，继续运行；
+- 收到其他值：不停止，继续运行；
+- 即使暂时没有消息（或没有 publisher），也会周期性输出监听状态日志并继续运行。
 
 ### 11.1 手动发送停止信号
 
@@ -183,6 +184,10 @@ roslaunch threshold_listener_jaka multi_jaka_openloop.launch \
 
 ```bash
 source /home/hanmo/code/catkin_ws/devel/setup.bash
+# 发送停止信号（会触发 stop_move）
+rostopic pub /threshold_detect std_msgs/Int32 "data: 0" -1
+
+# 发送继续运行信号（不会停止）
 rostopic pub /threshold_detect std_msgs/Int32 "data: 1" -1
 ```
 
