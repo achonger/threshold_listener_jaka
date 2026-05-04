@@ -162,8 +162,14 @@
     <param name="arm_ns" value="jaka4"/>
     <param name="tool_pose_topic" value="/jaka4/jaka_driver/tool_position"/>
     <param name="linear_move_service" value="/jaka4/jaka_driver/linear_move"/>
-    <param name="step_distance_mm" value="2.0"/>
-    <param name="total_distance_mm" value="80.0"/>
-    <param name="dwell_sec" value="3.0"/>
+    <param name="stop_move_service" value="/jaka4/jaka_driver/stop_move"/>
+    <param name="threshold_topic" value="/threshold_detect"/>
+    <param name="line_distance_mm" value="80.0"/>
+    <param name="direction_x" value="-1.0"/>
+    <param name="direction_y" value="0.0"/>
+    <param name="direction_z" value="0.0"/>
+    <param name="direction_frame" value="base"/>
+    <param name="line_speed_mm_s" value="5.0"/>
+    <param name="line_acc_mm_s2" value="20.0"/>
   </node>
 </launch>

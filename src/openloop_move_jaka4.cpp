@@ -1,7 +1,6 @@
-#include <algorithm>
 #include <cmath>
 #include <string>
-#include <vector>
+#include <thread>
 
 #include <geometry_msgs/PoseStamped.h>
 #include <jaka_msgs/Move.h>
@@ -11,6 +10,7 @@
 #include <std_srvs/Empty.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 class OpenloopMoveJaka4
 {
@@ -30,22 +30,24 @@ public:
     pnh_.param<std::string>("linear_move_service", linear_move_service_, default_linear_move_service);
     pnh_.param<std::string>("stop_move_service", stop_move_service_, default_stop_move_service);
     pnh_.param<std::string>("threshold_topic", threshold_topic_, "/threshold_detect");
-
     pnh_.param<std::string>("tool_pose_unit", tool_pose_unit_, "mm");
 
-    pnh_.param("step_distance_mm", step_distance_mm_, 2.0);
-    pnh_.param("total_distance_mm", total_distance_mm_, 80.0);
-    pnh_.param("dwell_sec", dwell_sec_, 3.0);
+    pnh_.param("line_distance_mm", line_distance_mm_, 80.0);
+    pnh_.param("direction_x", direction_x_, -1.0);
+    pnh_.param("direction_y", direction_y_, 0.0);
+    pnh_.param("direction_z", direction_z_, 0.0);
+    pnh_.param<std::string>("direction_frame", direction_frame_, "base");
+    pnh_.param("line_speed_mm_s", line_speed_mm_s_, 5.0);
+    pnh_.param("line_acc_mm_s2", line_acc_mm_s2_, 20.0);
 
-    pnh_.param("mvvelo", mvvelo_, 30.0);
-    pnh_.param("mvacc", mvacc_, 30.0);
+    pnh_.param("wait_pose_timeout_sec", wait_pose_timeout_sec_, 8.0);
+    pnh_.param("threshold_status_log_interval_sec", threshold_status_log_interval_sec_, 2.0);
+    pnh_.param("motion_time_safety_margin_sec", motion_time_safety_margin_sec_, 5.0);
+
     pnh_.param("mvtime", mvtime_, 0.0);
     pnh_.param("mvradii", mvradii_, 0.0);
     pnh_.param("coord_mode", coord_mode_, 0);
     pnh_.param("index", index_, 0);
-
-    pnh_.param("wait_pose_timeout_sec", wait_pose_timeout_sec_, 8.0);
-    pnh_.param("threshold_status_log_interval_sec", threshold_status_log_interval_sec_, 2.0);
 
     pose_sub_ = nh_.subscribe(tool_pose_topic_, 10, &OpenloopMoveJaka4::poseCallback, this);
     joint_sub_ = nh_.subscribe(joint_states_topic_, 20, &OpenloopMoveJaka4::jointCallback, this);
@@ -57,6 +59,9 @@ public:
 
   int run()
   {
+    ros::AsyncSpinner spinner(2);
+    spinner.start();
+
     printConfig();
     logThresholdMonitorStatus("startup", true);
 
@@ -69,58 +74,96 @@ public:
       return 1;
     }
 
-    printPose("initial", initial_pose_);
-
-    const int max_steps = static_cast<int>(total_distance_mm_ / step_distance_mm_ + 1e-6);
-    ROS_INFO("[openloop_move_jaka4] scan plan: max_steps=%d, step_distance_mm=%.3f, total_distance_mm=%.3f, dwell_sec=%.2f",
-             max_steps, step_distance_mm_, total_distance_mm_, dwell_sec_);
-
-    for (int step = 1; step <= max_steps && ros::ok(); ++step) {
-      logThresholdMonitorStatus("before sending command", false);
-      if (handleStopRequested("before sending command")) {
-        return 0;
-      }
-
-      geometry_msgs::PoseStamped target = initial_pose_;
-      const double cumulative_mm = step_distance_mm_ * static_cast<double>(step);
-      target.pose.position.x = initial_pose_.pose.position.x - toTopicDeltaFromMm(cumulative_mm);
-
-      const double current_x_mm = topicPosToMm(latest_pose_.pose.position.x);
-      const double target_x_mm = topicPosToMm(target.pose.position.x);
-      const double delta_x_mm = target_x_mm - current_x_mm;
-
-      ROS_INFO("[openloop_move_jaka4] Step %d/%d, target_x_mm=%.3f, current_x_mm=%.3f, delta_x_mm=%.3f, cumulative_mm=%.3f",
-               step, max_steps, target_x_mm, current_x_mm, delta_x_mm, cumulative_mm);
-
-      if (!sendLinearTarget(target, step)) {
-        return 1;
-      }
-
-      ROS_INFO("[openloop_move_jaka4] Step %d command sent. Please verify actual robot motion visually.", step);
-
-      printPose("step_done", latest_pose_);
-
-      if (cumulative_mm >= total_distance_mm_ - 1e-6) {
-        ROS_INFO("[openloop_move_jaka4] reached max travel %.3f mm, final pose below:", total_distance_mm_);
-        printPose("final", latest_pose_);
-        return 0;
-      }
-
-      if (!dwellWithStopCheck(step)) {
-        return 0;
-      }
+    if (handleStopRequested("before planning linear move")) {
+      return 0;
     }
 
-    ROS_INFO("[openloop_move_jaka4] normal exit.");
+    printPose("initial", initial_pose_);
+
+    double ux = direction_x_;
+    double uy = direction_y_;
+    double uz = direction_z_;
+    if (!computeDirectionUnit(ux, uy, uz)) {
+      return 1;
+    }
+
+    geometry_msgs::PoseStamped target = initial_pose_;
+    target.pose.position.x = initial_pose_.pose.position.x + toTopicDeltaFromMm(ux * line_distance_mm_);
+    target.pose.position.y = initial_pose_.pose.position.y + toTopicDeltaFromMm(uy * line_distance_mm_);
+    target.pose.position.z = initial_pose_.pose.position.z + toTopicDeltaFromMm(uz * line_distance_mm_);
+
+    printPose("target", target);
+    const double expected_motion_time_sec = line_distance_mm_ / std::max(1e-6, line_speed_mm_s_);
+    ROS_INFO("[openloop_move_jaka4] estimated motion time: %.3f sec (safety_margin=%.3f sec, total_watch=%.3f sec)",
+             expected_motion_time_sec, motion_time_safety_margin_sec_, expected_motion_time_sec + motion_time_safety_margin_sec_);
+
+    if (!sendLinearTarget(target)) {
+      return 1;
+    }
+
+    ROS_INFO("[openloop_move_jaka4] Linear command sent once. Please verify actual robot motion visually.");
+
+    const ros::Time start_watch = ros::Time::now();
+    const double total_watch_sec = expected_motion_time_sec + motion_time_safety_margin_sec_;
+    ros::Rate rate(50.0);
+    while (ros::ok()) {
+      logThresholdMonitorStatus("monitoring linear motion", false);
+      if (handleStopRequested("during linear motion monitoring")) {
+        return 0;
+      }
+      if ((ros::Time::now() - start_watch).toSec() >= total_watch_sec) {
+        break;
+      }
+      rate.sleep();
+    }
+
+    printPose("final", latest_pose_);
+    ROS_INFO("[openloop_move_jaka4] motion monitor completed without threshold stop; normal exit.");
     return 0;
   }
 
 private:
-  bool sendLinearTarget(const geometry_msgs::PoseStamped& target, int step)
+  bool computeDirectionUnit(double& ux, double& uy, double& uz) const
   {
-    double roll = 0.0;
-    double pitch = 0.0;
-    double yaw = 0.0;
+    const double norm = std::sqrt(ux * ux + uy * uy + uz * uz);
+    ROS_INFO("[openloop_move_jaka4] direction input raw=[%.6f, %.6f, %.6f], frame=%s",
+             ux, uy, uz, direction_frame_.c_str());
+    if (norm < 1e-9) {
+      ROS_ERROR("[openloop_move_jaka4] direction norm too small: %.12f", norm);
+      return false;
+    }
+    ux /= norm;
+    uy /= norm;
+    uz /= norm;
+
+    if (direction_frame_ == "tool") {
+      tf2::Quaternion q(
+        initial_pose_.pose.orientation.x,
+        initial_pose_.pose.orientation.y,
+        initial_pose_.pose.orientation.z,
+        initial_pose_.pose.orientation.w);
+      tf2::Matrix3x3 rot(q);
+      tf2::Vector3 tool_dir(ux, uy, uz);
+      tf2::Vector3 base_dir = rot * tool_dir;
+      ux = base_dir.x();
+      uy = base_dir.y();
+      uz = base_dir.z();
+      ROS_INFO("[openloop_move_jaka4] direction_frame=tool converted to base direction=[%.6f, %.6f, %.6f]",
+               ux, uy, uz);
+      return true;
+    }
+
+    if (direction_frame_ != "base") {
+      ROS_WARN("[openloop_move_jaka4] unsupported direction_frame=%s, fallback to base", direction_frame_.c_str());
+    }
+
+    ROS_INFO("[openloop_move_jaka4] normalized base direction=[%.6f, %.6f, %.6f]", ux, uy, uz);
+    return true;
+  }
+
+  bool sendLinearTarget(const geometry_msgs::PoseStamped& target)
+  {
+    double roll = 0.0, pitch = 0.0, yaw = 0.0;
     tf2::Quaternion q(
       target.pose.orientation.x,
       target.pose.orientation.y,
@@ -132,66 +175,36 @@ private:
     const double y_mm = topicPosToMm(target.pose.position.y);
     const double z_mm = topicPosToMm(target.pose.position.z);
 
-    ROS_INFO("[openloop_move_jaka4] Step %d target quaternion=[%.6f %.6f %.6f %.6f] rpy=[%.6f %.6f %.6f]",
-             step,
-             target.pose.orientation.x, target.pose.orientation.y,
-             target.pose.orientation.z, target.pose.orientation.w,
-             roll, pitch, yaw);
-
     jaka_msgs::Move srv;
-    srv.request.pose.clear();
-    srv.request.pose.push_back(static_cast<float>(x_mm));
-    srv.request.pose.push_back(static_cast<float>(y_mm));
-    srv.request.pose.push_back(static_cast<float>(z_mm));
-    srv.request.pose.push_back(static_cast<float>(roll));
-    srv.request.pose.push_back(static_cast<float>(pitch));
-    srv.request.pose.push_back(static_cast<float>(yaw));
-
+    srv.request.pose = {
+      static_cast<float>(x_mm),
+      static_cast<float>(y_mm),
+      static_cast<float>(z_mm),
+      static_cast<float>(roll),
+      static_cast<float>(pitch),
+      static_cast<float>(yaw)
+    };
     srv.request.has_ref = false;
     srv.request.ref_joint.clear();
-    srv.request.mvvelo = mvvelo_;
-    srv.request.mvacc = mvacc_;
+    srv.request.mvvelo = line_speed_mm_s_;
+    srv.request.mvacc = line_acc_mm_s2_;
     srv.request.mvtime = mvtime_;
     srv.request.mvradii = mvradii_;
     srv.request.coord_mode = coord_mode_;
     srv.request.index = index_;
 
-    ROS_INFO("[openloop_move_jaka4] Step %d request.pose=[%.3f, %.3f, %.3f, %.6f, %.6f, %.6f]",
-             step,
+    ROS_INFO("[openloop_move_jaka4] linear_move request.pose=[%.3f, %.3f, %.3f, %.6f, %.6f, %.6f]",
              srv.request.pose[0], srv.request.pose[1], srv.request.pose[2],
              srv.request.pose[3], srv.request.pose[4], srv.request.pose[5]);
 
-    // Hard failure only when ROS service call itself fails.
     if (!linear_move_client_.call(srv)) {
-      ROS_ERROR("[openloop_move_jaka4] Step %d linear_move service call failed.", step);
+      ROS_ERROR("[openloop_move_jaka4] linear_move service call failed.");
       return false;
     }
 
-    ROS_INFO("[openloop_move_jaka4] Step %d linear_move response: ret=%d, message=%s",
-             step, srv.response.ret, srv.response.message.c_str());
-
-    ROS_INFO("[openloop_move_jaka4] Step %d linear_move response ignored for flow control.", step);
-
+    ROS_INFO("[openloop_move_jaka4] linear_move response: ret=%d, message=%s (ignored for flow control)",
+             srv.response.ret, srv.response.message.c_str());
     return true;
-  }
-
-  bool dwellWithStopCheck(int step)
-  {
-    ROS_INFO("[openloop_move_jaka4] Step %d dwell %.2f sec", step, dwell_sec_);
-    ros::Time start = ros::Time::now();
-    ros::Rate rate(50.0);
-    while (ros::ok()) {
-      ros::spinOnce();
-      logThresholdMonitorStatus("during dwell", false);
-      if (handleStopRequested("during dwell")) {
-        return false;
-      }
-      if ((ros::Time::now() - start).toSec() >= dwell_sec_) {
-        return true;
-      }
-      rate.sleep();
-    }
-    return false;
   }
 
   bool handleStopRequested(const std::string& phase)
@@ -199,7 +212,6 @@ private:
     if (!stop_requested_) {
       return false;
     }
-
     ROS_WARN("[openloop_move_jaka4] stop requested (%s), calling stop_move service...", phase.c_str());
     std_srvs::Empty stop_srv;
     if (!stop_move_client_.call(stop_srv)) {
@@ -207,7 +219,6 @@ private:
     } else {
       ROS_INFO("[openloop_move_jaka4] stop_move service call done.");
     }
-
     printPose("stopped_by_threshold", latest_pose_);
     return true;
   }
@@ -217,26 +228,15 @@ private:
     ros::Time start = ros::Time::now();
     ros::Rate rate(50.0);
     while (ros::ok()) {
-      ros::spinOnce();
       logThresholdMonitorStatus("waiting initial data", false);
-
       if (handleStopRequested("while waiting initial data")) {
         return false;
       }
-
       if (has_pose_ && has_joint_state_) {
         return true;
       }
       if ((ros::Time::now() - start).toSec() > wait_pose_timeout_sec_) {
-        if (has_pose_ && !has_joint_state_) {
-          ROS_ERROR("[openloop_move_jaka4] initial tool pose received, but no joint_states on %s within %.2f sec",
-                    joint_states_topic_.c_str(), wait_pose_timeout_sec_);
-        } else if (!has_pose_ && has_joint_state_) {
-          ROS_ERROR("[openloop_move_jaka4] joint_states received, but no tool pose on %s within %.2f sec",
-                    tool_pose_topic_.c_str(), wait_pose_timeout_sec_);
-        } else {
-          ROS_ERROR("[openloop_move_jaka4] no initial pose/joint_states within %.2f sec", wait_pose_timeout_sec_);
-        }
+        ROS_ERROR("[openloop_move_jaka4] waiting initial pose/joint_state timeout %.2f sec", wait_pose_timeout_sec_);
         return false;
       }
       rate.sleep();
@@ -250,10 +250,8 @@ private:
     ++threshold_msg_count_;
     last_threshold_value_ = msg->data;
     last_threshold_stamp_ = ros::Time::now();
-
     ROS_INFO("[openloop_move_jaka4] Received %s: %d (count=%zu, stamp=%.3f)",
              threshold_topic_.c_str(), msg->data, threshold_msg_count_, last_threshold_stamp_.toSec());
-
     if (msg->data == 1) {
       stop_requested_ = true;
       threshold_triggered_ = true;
@@ -261,6 +259,22 @@ private:
     } else {
       ROS_INFO("[openloop_move_jaka4] Received %s: %d -> no stop requested", threshold_topic_.c_str(), msg->data);
     }
+  }
+
+  void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+  {
+    latest_pose_ = *msg;
+    if (!has_pose_) {
+      initial_pose_ = latest_pose_;
+      has_pose_ = true;
+      ROS_INFO("[openloop_move_jaka4] Initial pose captured.");
+    }
+  }
+
+  void jointCallback(const sensor_msgs::JointState::ConstPtr& msg)
+  {
+    latest_joint_positions_ = msg->position;
+    has_joint_state_ = true;
   }
 
   void logThresholdMonitorStatus(const std::string& phase, bool force)
@@ -271,7 +285,6 @@ private:
       return;
     }
     last_threshold_status_log_time_ = now;
-
     const uint32_t pub_count = threshold_sub_.getNumPublishers();
     if (!threshold_msg_received_) {
       if (pub_count == 0) {
@@ -283,31 +296,9 @@ private:
       }
       return;
     }
-
     const double age_sec = std::max(0.0, (now - last_threshold_stamp_).toSec());
     ROS_INFO("[openloop_move_jaka4] threshold monitor (%s): last_value=%d, last_msg_age=%.2f s, msg_count=%zu, publishers=%u, triggered=%s",
-             phase.c_str(),
-             last_threshold_value_,
-             age_sec,
-             threshold_msg_count_,
-             pub_count,
-             threshold_triggered_ ? "true" : "false");
-  }
-
-  void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
-  {
-    latest_pose_ = *msg;
-    if (!has_pose_) {
-      initial_pose_ = latest_pose_;
-      has_pose_ = true;
-      ROS_INFO("[openloop_move_jaka4] Initial pose captured from topic.");
-    }
-  }
-
-  void jointCallback(const sensor_msgs::JointState::ConstPtr& msg)
-  {
-    latest_joint_positions_ = msg->position;
-    has_joint_state_ = true;
+             phase.c_str(), last_threshold_value_, age_sec, threshold_msg_count_, pub_count, threshold_triggered_ ? "true" : "false");
   }
 
   void printConfig() const
@@ -318,26 +309,21 @@ private:
     ROS_INFO("[openloop_move_jaka4] linear_move_service=%s", linear_move_service_.c_str());
     ROS_INFO("[openloop_move_jaka4] stop_move_service=%s", stop_move_service_.c_str());
     ROS_INFO("[openloop_move_jaka4] threshold_topic=%s", threshold_topic_.c_str());
-    ROS_INFO("[openloop_move_jaka4] threshold_status_log_interval_sec=%.2f", threshold_status_log_interval_sec_);
-    ROS_INFO("[openloop_move_jaka4] tool_pose_unit=%s", tool_pose_unit_.c_str());
-    ROS_INFO("[openloop_move_jaka4] step_distance_mm=%.3f total_distance_mm=%.3f dwell_sec=%.2f",
-             step_distance_mm_, total_distance_mm_, dwell_sec_);
-    ROS_INFO("[openloop_move_jaka4] move params: mvvelo=%.3f mvacc=%.3f mvtime=%.3f mvradii=%.3f coord_mode=%d index=%d",
-             mvvelo_, mvacc_, mvtime_, mvradii_, coord_mode_, index_);
+    ROS_INFO("[openloop_move_jaka4] line_distance_mm=%.3f line_speed_mm_s=%.3f line_acc_mm_s2=%.3f",
+             line_distance_mm_, line_speed_mm_s_, line_acc_mm_s2_);
+    ROS_INFO("[openloop_move_jaka4] direction=[%.6f, %.6f, %.6f], direction_frame=%s",
+             direction_x_, direction_y_, direction_z_, direction_frame_.c_str());
   }
 
   void printPose(const std::string& tag, const geometry_msgs::PoseStamped& pose) const
   {
-    double roll = 0.0;
-    double pitch = 0.0;
-    double yaw = 0.0;
+    double roll = 0.0, pitch = 0.0, yaw = 0.0;
     tf2::Quaternion q(
       pose.pose.orientation.x,
       pose.pose.orientation.y,
       pose.pose.orientation.z,
       pose.pose.orientation.w);
     tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-
     ROS_INFO("[openloop_move_jaka4] pose(%s): x=%.3f y=%.3f z=%.3f q=[%.6f %.6f %.6f %.6f] rpy=[%.6f %.6f %.6f]",
              tag.c_str(),
              topicPosToMm(pose.pose.position.x),
@@ -352,35 +338,26 @@ private:
 
   double topicPosToMm(double v_topic) const
   {
-    if (tool_pose_unit_ == "m") {
-      return v_topic * 1000.0;
-    }
-    return v_topic;  // default mm
+    return (tool_pose_unit_ == "m") ? (v_topic * 1000.0) : v_topic;
   }
 
   double toTopicDeltaFromMm(double mm) const
   {
-    if (tool_pose_unit_ == "m") {
-      return mm / 1000.0;
-    }
-    return mm;
+    return (tool_pose_unit_ == "m") ? (mm / 1000.0) : mm;
   }
 
 private:
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
-
   ros::Subscriber pose_sub_;
   ros::Subscriber joint_sub_;
   ros::Subscriber threshold_sub_;
-
   ros::ServiceClient linear_move_client_;
   ros::ServiceClient stop_move_client_;
 
   geometry_msgs::PoseStamped latest_pose_;
   geometry_msgs::PoseStamped initial_pose_;
   std::vector<double> latest_joint_positions_;
-
   bool has_pose_{false};
   bool has_joint_state_{false};
   bool stop_requested_{false};
@@ -398,29 +375,26 @@ private:
   std::string stop_move_service_;
   std::string threshold_topic_;
   std::string tool_pose_unit_;
+  std::string direction_frame_;
 
-  double step_distance_mm_{2.0};
-  double total_distance_mm_{80.0};
-  double dwell_sec_{3.0};
-
-  double total_distance_m_{0.10};
-  double step_distance_m_{0.01};
-
-  double mvvelo_{30.0};
-  double mvacc_{30.0};
+  double line_distance_mm_{80.0};
+  double direction_x_{-1.0};
+  double direction_y_{0.0};
+  double direction_z_{0.0};
+  double line_speed_mm_s_{5.0};
+  double line_acc_mm_s2_{20.0};
+  double wait_pose_timeout_sec_{8.0};
+  double threshold_status_log_interval_sec_{2.0};
+  double motion_time_safety_margin_sec_{5.0};
   double mvtime_{0.0};
   double mvradii_{0.0};
   int coord_mode_{0};
   int index_{0};
-
-  double wait_pose_timeout_sec_{8.0};
-  double threshold_status_log_interval_sec_{2.0};
 };
 
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "openloop_move_jaka4");
-
   OpenloopMoveJaka4 node;
   return node.run();
 }
