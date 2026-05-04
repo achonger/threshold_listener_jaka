@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(threshold_listener_jaka)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+## Compile as C++14 (ROS Noetic compatible)
+add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -10,6 +10,10 @@ project(threshold_listener_jaka)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  geometry_msgs
+  jaka_msgs
+  tf2
+  sensor_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -150,6 +154,19 @@ target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
 )
 
+
+add_executable(openloop_move_jaka4 src/openloop_move_jaka4.cpp)
+add_dependencies(openloop_move_jaka4 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(openloop_move_jaka4
+  ${catkin_LIBRARIES}
+)
+
+add_executable(jaka_state_adapter_node src/jaka_state_adapter_node.cpp)
+add_dependencies(jaka_state_adapter_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(jaka_state_adapter_node
+  ${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
@@ -163,6 +180,11 @@ target_link_libraries(${PROJECT_NAME}_node
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
+
+catkin_install_python(PROGRAMS
+  scripts/start_jaka4_openloop.sh
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
