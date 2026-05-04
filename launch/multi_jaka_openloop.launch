@@ -1,0 +1,175 @@
+<launch>
+  <!-- Enable switches -->
+  <arg name="enable_jaka1" default="true"/>
+  <arg name="enable_jaka2" default="false"/>
+  <arg name="enable_jaka3" default="false"/>
+  <arg name="enable_jaka4" default="false"/>
+
+  <!-- IP configuration -->
+  <arg name="jaka1_ip" default="192.168.1.100"/>
+  <arg name="jaka2_ip" default="192.168.1.101"/>
+  <arg name="jaka3_ip" default="192.168.1.102"/>
+  <arg name="jaka4_ip" default="192.168.1.103"/>
+
+  <!-- Optional behavior -->
+  <arg name="connect_jaka1" default="true"/>
+  <arg name="connect_jaka2" default="true"/>
+  <arg name="connect_jaka3" default="true"/>
+  <arg name="connect_jaka4" default="true"/>
+  <arg name="start_jaka4_demo" default="false"/>
+
+  <!-- URDF in this package; can be overridden from command line -->
+  <arg name="urdf_file" default="$(find threshold_listener_jaka)/urdf/jaka_zu3.urdf"/>
+
+  <group ns="jaka1" if="$(arg enable_jaka1)">
+    <param name="ip" value="$(arg jaka1_ip)" />
+    <param name="robot_description" textfile="$(arg urdf_file)"/>
+
+    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+      <param name="ip" value="$(arg jaka1_ip)" />
+      <param name="robot_ip" value="$(arg jaka1_ip)" />
+      <param name="connect" value="$(arg connect_jaka1)"/>
+      <remap from="/jaka_driver/joint_position" to="jaka_driver/joint_position" />
+      <remap from="/jaka_driver/robot_states" to="jaka_driver/robot_states" />
+      <remap from="/jaka_driver/tool_position" to="jaka_driver/tool_position" />
+      <remap from="/jaka_driver/linear_move" to="jaka_driver/linear_move" />
+      <remap from="/jaka_driver/joint_move" to="jaka_driver/joint_move" />
+      <remap from="/jaka_driver/servo_p" to="jaka_driver/servo_p" />
+      <remap from="/jaka_driver/servo_j" to="jaka_driver/servo_j" />
+      <remap from="/jaka_driver/servo_move_enable" to="jaka_driver/servo_move_enable" />
+      <remap from="/jaka_driver/drag_move" to="jaka_driver/drag_move" />
+      <remap from="/jaka_driver/jog" to="jaka_driver/jog" />
+      <remap from="/jaka_driver/set_collisionlevel" to="jaka_driver/set_collisionlevel" />
+      <remap from="/jaka_driver/set_payload" to="jaka_driver/set_payload" />
+      <remap from="/jaka_driver/set_toolframe" to="jaka_driver/set_toolframe" />
+      <remap from="/jaka_driver/set_userframe" to="jaka_driver/set_userframe" />
+      <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
+    </node>
+
+    <node pkg="threshold_listener_jaka" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" value="100.0" />
+      <remap from="/joint_states" to="joint_states"/>
+    </node>
+  </group>
+
+  <group ns="jaka2" if="$(arg enable_jaka2)">
+    <param name="ip" value="$(arg jaka2_ip)" />
+    <param name="robot_description" textfile="$(arg urdf_file)"/>
+
+    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+      <param name="ip" value="$(arg jaka2_ip)" />
+      <param name="robot_ip" value="$(arg jaka2_ip)" />
+      <param name="connect" value="$(arg connect_jaka2)"/>
+      <remap from="/jaka_driver/joint_position" to="jaka_driver/joint_position" />
+      <remap from="/jaka_driver/robot_states" to="jaka_driver/robot_states" />
+      <remap from="/jaka_driver/tool_position" to="jaka_driver/tool_position" />
+      <remap from="/jaka_driver/linear_move" to="jaka_driver/linear_move" />
+      <remap from="/jaka_driver/joint_move" to="jaka_driver/joint_move" />
+      <remap from="/jaka_driver/servo_p" to="jaka_driver/servo_p" />
+      <remap from="/jaka_driver/servo_j" to="jaka_driver/servo_j" />
+      <remap from="/jaka_driver/servo_move_enable" to="jaka_driver/servo_move_enable" />
+      <remap from="/jaka_driver/drag_move" to="jaka_driver/drag_move" />
+      <remap from="/jaka_driver/jog" to="jaka_driver/jog" />
+      <remap from="/jaka_driver/set_collisionlevel" to="jaka_driver/set_collisionlevel" />
+      <remap from="/jaka_driver/set_payload" to="jaka_driver/set_payload" />
+      <remap from="/jaka_driver/set_toolframe" to="jaka_driver/set_toolframe" />
+      <remap from="/jaka_driver/set_userframe" to="jaka_driver/set_userframe" />
+      <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
+    </node>
+
+    <node pkg="threshold_listener_jaka" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" value="100.0" />
+      <remap from="/joint_states" to="joint_states"/>
+    </node>
+  </group>
+
+  <group ns="jaka3" if="$(arg enable_jaka3)">
+    <param name="ip" value="$(arg jaka3_ip)" />
+    <param name="robot_description" textfile="$(arg urdf_file)"/>
+
+    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+      <param name="ip" value="$(arg jaka3_ip)" />
+      <param name="robot_ip" value="$(arg jaka3_ip)" />
+      <param name="connect" value="$(arg connect_jaka3)"/>
+      <remap from="/jaka_driver/joint_position" to="jaka_driver/joint_position" />
+      <remap from="/jaka_driver/robot_states" to="jaka_driver/robot_states" />
+      <remap from="/jaka_driver/tool_position" to="jaka_driver/tool_position" />
+      <remap from="/jaka_driver/linear_move" to="jaka_driver/linear_move" />
+      <remap from="/jaka_driver/joint_move" to="jaka_driver/joint_move" />
+      <remap from="/jaka_driver/servo_p" to="jaka_driver/servo_p" />
+      <remap from="/jaka_driver/servo_j" to="jaka_driver/servo_j" />
+      <remap from="/jaka_driver/servo_move_enable" to="jaka_driver/servo_move_enable" />
+      <remap from="/jaka_driver/drag_move" to="jaka_driver/drag_move" />
+      <remap from="/jaka_driver/jog" to="jaka_driver/jog" />
+      <remap from="/jaka_driver/set_collisionlevel" to="jaka_driver/set_collisionlevel" />
+      <remap from="/jaka_driver/set_payload" to="jaka_driver/set_payload" />
+      <remap from="/jaka_driver/set_toolframe" to="jaka_driver/set_toolframe" />
+      <remap from="/jaka_driver/set_userframe" to="jaka_driver/set_userframe" />
+      <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
+    </node>
+
+    <node pkg="threshold_listener_jaka" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" value="100.0" />
+      <remap from="/joint_states" to="joint_states"/>
+    </node>
+  </group>
+
+  <group ns="jaka4" if="$(arg enable_jaka4)">
+    <param name="ip" value="$(arg jaka4_ip)" />
+    <param name="robot_description" textfile="$(arg urdf_file)"/>
+
+    <node pkg="jaka_driver" type="jaka_driver" name="jaka_driver" output="screen">
+      <param name="ip" value="$(arg jaka4_ip)" />
+      <param name="robot_ip" value="$(arg jaka4_ip)" />
+      <param name="connect" value="$(arg connect_jaka4)"/>
+      <remap from="/jaka_driver/joint_position" to="jaka_driver/joint_position" />
+      <remap from="/jaka_driver/robot_states" to="jaka_driver/robot_states" />
+      <remap from="/jaka_driver/tool_position" to="jaka_driver/tool_position" />
+      <remap from="/jaka_driver/linear_move" to="jaka_driver/linear_move" />
+      <remap from="/jaka_driver/joint_move" to="jaka_driver/joint_move" />
+      <remap from="/jaka_driver/servo_p" to="jaka_driver/servo_p" />
+      <remap from="/jaka_driver/servo_j" to="jaka_driver/servo_j" />
+      <remap from="/jaka_driver/servo_move_enable" to="jaka_driver/servo_move_enable" />
+      <remap from="/jaka_driver/drag_move" to="jaka_driver/drag_move" />
+      <remap from="/jaka_driver/jog" to="jaka_driver/jog" />
+      <remap from="/jaka_driver/set_collisionlevel" to="jaka_driver/set_collisionlevel" />
+      <remap from="/jaka_driver/set_payload" to="jaka_driver/set_payload" />
+      <remap from="/jaka_driver/set_toolframe" to="jaka_driver/set_toolframe" />
+      <remap from="/jaka_driver/set_userframe" to="jaka_driver/set_userframe" />
+      <remap from="/jaka_driver/stop_move" to="jaka_driver/stop_move" />
+    </node>
+
+    <node pkg="threshold_listener_jaka" type="jaka_state_adapter_node" name="jaka_state_adapter_node" output="screen"/>
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" value="100.0" />
+      <remap from="/joint_states" to="joint_states"/>
+    </node>
+  </group>
+
+  <node
+    pkg="threshold_listener_jaka"
+    type="openloop_move_jaka4"
+    name="openloop_move_jaka4"
+    output="screen"
+    if="$(eval arg('enable_jaka4') and arg('start_jaka4_demo'))">
+    <param name="arm_ns" value="jaka4"/>
+    <param name="tool_pose_topic" value="/jaka4/jaka_driver/tool_position"/>
+    <param name="linear_move_service" value="/jaka4/jaka_driver/linear_move"/>
+    <param name="stop_move_service" value="/jaka4/jaka_driver/stop_move"/>
+    <param name="threshold_topic" value="/threshold_detect"/>
+    <param name="line_distance_mm" value="80.0"/>
+    <param name="direction_x" value="-1.0"/>
+    <param name="direction_y" value="0.0"/>
+    <param name="direction_z" value="0.0"/>
+    <param name="direction_frame" value="base"/>
+    <param name="line_speed_mm_s" value="5.0"/>
+    <param name="line_acc_mm_s2" value="20.0"/>
+  </node>
+</launch>
